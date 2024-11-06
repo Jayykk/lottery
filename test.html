@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>聖誕節禮物交換抽籤系統</title>
     <style>
+        /* 前面的 CSS 樣式保持不變 */
         body {
             font-family: Arial, sans-serif;
             max-width: 1200px;
@@ -17,7 +18,7 @@
             gap: 20px;
             flex-wrap: wrap;
         }
-        .input-section, .list-section, .participant-section, .draw-section {
+        .input-section, .list-section, .participant-section, .draw-section, .history-section {
             background: white;
             padding: 20px;
             border-radius: 8px;
@@ -30,7 +31,7 @@
             gap: 10px;
             margin-bottom: 10px;
         }
-        input, button {
+        input, button, select {
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -84,11 +85,42 @@
             border-radius: 12px;
             font-size: 0.9em;
         }
+        .history-record {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .history-date {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .export-btn {
+            background-color: #007bff;
+        }
+        .history-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .notice {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
     <h1>🎄 聖誕節禮物交換抽籤系統</h1>
     
+    <div class="notice">
+        注意：目前資料僅保存在當前頁面，重新整理後資料會消失。
+    </div>
+
     <div class="container">
         <div class="input-section">
             <div class="section-header">
@@ -105,7 +137,6 @@
         <div class="list-section">
             <h2>禮物類型清單</h2>
             <div id="giftList" class="gift-list">
-                <!-- 禮物清單會在這裡動態生成 -->
             </div>
         </div>
 
@@ -119,7 +150,6 @@
                 <button onclick="addParticipant()">新增</button>
             </div>
             <div id="participantList" class="participant-list">
-                <!-- 參與者清單會在這裡動態生成 -->
             </div>
         </div>
 
@@ -127,14 +157,25 @@
             <h2>抽籤結果</h2>
             <button onclick="drawGifts()" style="width: 100%; margin-bottom: 15px;">開始抽籤</button>
             <div id="drawResult" class="gift-list">
-                <!-- 抽籤結果會在這裡顯示 -->
+            </div>
+        </div>
+
+        <div class="history-section">
+            <h2>本次抽籤記錄</h2>
+            <div class="history-controls">
+                <button onclick="exportHistory()" class="export-btn">匯出記錄</button>
+                <button onclick="clearHistory()" class="delete-btn">清除記錄</button>
+            </div>
+            <div id="historyList">
             </div>
         </div>
     </div>
 
     <script>
+        // 使用記憶體變數來存儲資料
         let gifts = [];
         let participants = [];
+        let drawHistory = [];
 
         function addGift() {
             const giftInput = document.getElementById('giftInput');
@@ -251,13 +292,68 @@
             const shuffledGifts = shuffleArray([...gifts]).slice(0, participants.length);
             const shuffledParticipants = shuffleArray([...participants]);
 
+            const results = shuffledParticipants.map((participant, index) => ({
+                participant,
+                gift: shuffledGifts[index]
+            }));
+
+            // 儲存抽籤結果到歷史記錄
+            const drawRecord = {
+                date: new Date().toLocaleString(),
+                results: results
+            };
+            drawHistory.push(drawRecord);
+
+            // 更新顯示
             drawResult.innerHTML = '';
-            shuffledParticipants.forEach((participant, index) => {
+            results.forEach(result => {
                 const div = document.createElement('div');
                 div.className = 'result-item';
-                div.textContent = `${participant} → ${shuffledGifts[index]}`;
+                div.textContent = `${result.participant} → ${result.gift}`;
                 drawResult.appendChild(div);
             });
+
+            updateHistoryList();
+        }
+
+        function updateHistoryList() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            drawHistory.slice().reverse().forEach((record, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-record';
+                
+                let resultsHtml = record.results.map(result => 
+                    `<div class="result-item">${result.participant} → ${result.gift}</div>`
+                ).join('');
+
+                div.innerHTML = `
+                    <div class="history-date">抽籤時間：${record.date}</div>
+                    ${resultsHtml}
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        function exportHistory() {
+            const historyData = JSON.stringify(drawHistory, null, 2);
+            const blob = new Blob([historyData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `抽籤記錄_${new Date().toLocaleDateString()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function clearHistory() {
+            if (confirm('確定要清除所有歷史記錄嗎？')) {
+                drawHistory = [];
+                updateHistoryList();
+            }
         }
 
         // 按下 Enter 鍵也可以新增
