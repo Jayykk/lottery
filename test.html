@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聖誕節禮物交換抽籤系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .input-section, .list-section, .participant-section, .draw-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 250px;
+        }
+        .gift-type, .participant-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input, button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .gift-list, .participant-list {
+            margin-top: 20px;
+        }
+        .gift-item, .participant-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            padding: 5px 10px;
+        }
+        .result-item {
+            background: #e9ecef;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .count-badge {
+            background: #6c757d;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎄 聖誕節禮物交換抽籤系統</h1>
+    
+    <div class="container">
+        <div class="input-section">
+            <div class="section-header">
+                <h2>新增禮物類型</h2>
+                <span id="giftCount" class="count-badge">0</span>
+            </div>
+            <div class="gift-type">
+                <input type="text" id="giftInput" placeholder="請輸入禮物類型">
+                <button onclick="addGift()">新增</button>
+            </div>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div class="list-section">
+            <h2>禮物類型清單</h2>
+            <div id="giftList" class="gift-list">
+                <!-- 禮物清單會在這裡動態生成 -->
+            </div>
+        </div>
+
+        <div class="participant-section">
+            <div class="section-header">
+                <h2>參與者名單</h2>
+                <span id="participantCount" class="count-badge">0</span>
+            </div>
+            <div class="participant-input">
+                <input type="text" id="participantInput" placeholder="請輸入參與者名字">
+                <button onclick="addParticipant()">新增</button>
+            </div>
+            <div id="participantList" class="participant-list">
+                <!-- 參與者清單會在這裡動態生成 -->
+            </div>
+        </div>
+
+        <div class="draw-section">
+            <h2>抽籤結果</h2>
+            <button onclick="drawGifts()" style="width: 100%; margin-bottom: 15px;">開始抽籤</button>
+            <div id="drawResult" class="gift-list">
+                <!-- 抽籤結果會在這裡顯示 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gifts = [];
+        let participants = [];
+
+        function addGift() {
+            const giftInput = document.getElementById('giftInput');
+            const errorDiv = document.getElementById('error');
+            const giftType = giftInput.value.trim();
+
+            if (!giftType) {
+                errorDiv.textContent = '請輸入禮物類型！';
+                return;
+            }
+
+            if (gifts.includes(giftType)) {
+                errorDiv.textContent = '此禮物類型已存在！';
+                return;
+            }
+
+            errorDiv.textContent = '';
+            gifts.push(giftType);
+            giftInput.value = '';
+            updateGiftList();
+            updateCounts();
+        }
+
+        function addParticipant() {
+            const participantInput = document.getElementById('participantInput');
+            const errorDiv = document.getElementById('error');
+            const participantName = participantInput.value.trim();
+
+            if (!participantName) {
+                errorDiv.textContent = '請輸入參與者名字！';
+                return;
+            }
+
+            if (participants.includes(participantName)) {
+                errorDiv.textContent = '此參與者已存在！';
+                return;
+            }
+
+            errorDiv.textContent = '';
+            participants.push(participantName);
+            participantInput.value = '';
+            updateParticipantList();
+            updateCounts();
+        }
+
+        function deleteGift(index) {
+            gifts.splice(index, 1);
+            updateGiftList();
+            updateCounts();
+        }
+
+        function deleteParticipant(index) {
+            participants.splice(index, 1);
+            updateParticipantList();
+            updateCounts();
+        }
+
+        function updateGiftList() {
+            const giftList = document.getElementById('giftList');
+            giftList.innerHTML = '';
+            gifts.forEach((gift, index) => {
+                const div = document.createElement('div');
+                div.className = 'gift-item';
+                div.innerHTML = `
+                    <span>${index + 1}. ${gift}</span>
+                    <button class="delete-btn" onclick="deleteGift(${index})">删除</button>
+                `;
+                giftList.appendChild(div);
+            });
+        }
+
+        function updateParticipantList() {
+            const participantList = document.getElementById('participantList');
+            participantList.innerHTML = '';
+            participants.forEach((participant, index) => {
+                const div = document.createElement('div');
+                div.className = 'participant-item';
+                div.innerHTML = `
+                    <span>${index + 1}. ${participant}</span>
+                    <button class="delete-btn" onclick="deleteParticipant(${index})">删除</button>
+                `;
+                participantList.appendChild(div);
+            });
+        }
+
+        function updateCounts() {
+            document.getElementById('giftCount').textContent = gifts.length;
+            document.getElementById('participantCount').textContent = participants.length;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function drawGifts() {
+            const drawResult = document.getElementById('drawResult');
+            const errorDiv = document.getElementById('error');
+
+            if (participants.length === 0) {
+                errorDiv.textContent = '請新增參與者！';
+                return;
+            }
+
+            if (gifts.length < participants.length) {
+                errorDiv.textContent = '禮物類型數量不足！';
+                return;
+            }
+
+            errorDiv.textContent = '';
+            const shuffledGifts = shuffleArray([...gifts]).slice(0, participants.length);
+            const shuffledParticipants = shuffleArray([...participants]);
+
+            drawResult.innerHTML = '';
+            shuffledParticipants.forEach((participant, index) => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                div.textContent = `${participant} → ${shuffledGifts[index]}`;
+                drawResult.appendChild(div);
+            });
+        }
+
+        // 按下 Enter 鍵也可以新增
+        document.getElementById('giftInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addGift();
+            }
+        });
+
+        document.getElementById('participantInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addParticipant();
+            }
+        });
+    </script>
+</body>
+</html>
